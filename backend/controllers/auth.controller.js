@@ -1,10 +1,10 @@
 import User from '../models/User.model.js'
 import sendToken from '../utils/sendToken.js'
 import crypto from 'crypto'
-import {
-  sendPasswordResetEmail,
-  sendWelcomeEmail
-} from '../utils/sendEmail.js'
+// import {
+//   sendPasswordResetEmail,
+//   sendWelcomeEmail
+// } from '../utils/sendEmail.js'
 
 // ─── @desc    Register
 // ─── @route   POST /api/auth/register
