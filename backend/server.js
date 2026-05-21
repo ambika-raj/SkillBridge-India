@@ -213,9 +213,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }))
 
-// Handle preflight for all routes
-app.options('*', cors())
-
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(helmet())
 app.use(morgan('dev'))
