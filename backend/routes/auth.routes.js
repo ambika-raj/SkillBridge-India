@@ -5,8 +5,8 @@ import {
   logout,
   getMe,
   updatePassword,
-  forgotPassword,
-  resetPassword
+  // forgotPassword,
+  // resetPassword
 } from '../controllers/auth.controller.js'
 import { isAuthenticated } from '../middleware/auth.middleware.js'
 
