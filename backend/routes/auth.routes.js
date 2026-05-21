@@ -15,8 +15,8 @@ const router = express.Router()
 // Public routes — no login required
 router.post('/register', register)
 router.post('/login', login)
-router.post('/password/forgot', forgotPassword)
-router.put('/password/reset/:token', resetPassword)
+// router.post('/password/forgot', forgotPassword)
+// router.put('/password/reset/:token', resetPassword)
 
 // Private routes — must be logged in
 router.get('/logout', isAuthenticated, logout)
