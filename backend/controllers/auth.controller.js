@@ -23,7 +23,7 @@ export const register = async (req, res, next) => {
     // sendWelcomeEmail({ name, email, role: role || 'student' })
     //   .catch(err => console.error('Welcome email failed:', err.message))
 
-    // sendToken(user, 201, res, 'Registered successfully')
+    sendToken(user, 201, res, 'Registered successfully')
   } catch (err) {
     next(err)
   }
