@@ -232,15 +232,20 @@ export const forgotPassword = async (req, res) => {
     //   message: "Reset link generated successfully",
     //   resetLink: resetUrl
     // });
-    try {
-      await transporter.sendMail(mailOptions)
-      console.log("✅ Email sent")
-    } catch (err) {
-      console.log("❌ Email failed:", err.message)
-    }
+    // try {
+    //   await transporter.sendMail(mailOptions)
+    //   console.log("✅ Email sent")
+    // } catch (err) {
+    //   console.log("❌ Email failed:", err.message)
+    // }
 
     // ALWAYS return success
-    return res.json({
+    // return res.json({
+    //   success: true,
+    //   message: "Reset link generated successfully",
+    //   resetLink: resetUrl
+    // })
+    return res.status(200).json({
       success: true,
       message: "Reset link generated successfully",
       resetLink: resetUrl
