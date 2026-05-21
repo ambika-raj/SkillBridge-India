@@ -178,6 +178,88 @@ export const updatePassword = async (req, res, next) => {
 //     })
 //   }
 // }
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Save token in DB
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+
+    await user.save();
+
+    // FRONTEND RESET LINK
+    const resetUrl =
+      `https://skillbridge-india26.netlify.app/reset-password.html?token=${resetToken}`;
+
+    // Email options
+    const mailOptions = {
+      from: process.env.SMTP_EMAIL,
+      to: user.email,
+      subject: "Password Reset",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Click below to reset password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `
+    };
+
+    // TRY sending email
+    // try {
+    //   await transporter.sendMail(mailOptions);
+
+    //   console.log("✅ Email sent successfully");
+    // } catch (emailError) {
+    //   console.log("❌ Email failed:", emailError.message);
+    // }
+
+    // // ALWAYS return success
+    // return res.status(200).json({
+    //   success: true,
+    //   message: "Reset link generated successfully",
+    //   resetLink: resetUrl
+    // });
+    // try {
+    //   await transporter.sendMail(mailOptions)
+    //   console.log("✅ Email sent")
+    // } catch (err) {
+    //   console.log("❌ Email failed:", err.message)
+    // }
+
+    // ALWAYS return success
+    // return res.json({
+    //   success: true,
+    //   message: "Reset link generated successfully",
+    //   resetLink: resetUrl
+    // })
+    return res.status(200).json({
+      success: true,
+      message: "Reset link generated successfully",
+      resetLink: resetUrl
+    })
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error"
+    });
+  }
+};
 
 // ─── @desc    Reset password
 // ─── @route   PUT /api/auth/password/reset/:token
