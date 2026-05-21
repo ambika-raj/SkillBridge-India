@@ -99,85 +99,162 @@ export const updatePassword = async (req, res, next) => {
 // ─── @desc    Forgot password
 // ─── @route   POST /api/auth/password/forgot
 // ─── KEY FIX: never returns success:true if email actually failed
-export const forgotPassword = async (req, res, next) => {
-  let savedUser = null
+// export const forgotPassword = async (req, res, next) => {
+//   let savedUser = null
 
+//   try {
+//     const user = await User.findOne({ email: req.body.email })
+
+//     if (!user) {
+//       // Security: return same message so attackers can't enumerate emails
+//       return res.status(200).json({
+//         success: true,
+//         message: 'If an account exists with this email, a reset link has been sent.'
+//       })
+//     }
+
+//     // Generate reset token and save hashed version to DB
+//     const resetToken = user.getResetPasswordToken()
+//     await user.save({ validateBeforeSave: false })
+//     savedUser = user  // keep ref for cleanup if email fails
+
+//     // Build the reset URL
+//     const frontendUrl = (process.env.FRONTEND_URL || 'https://skillbridge-india26.netlify.app').replace(/\/$/, '')
+//     const resetUrl = `${frontendUrl}/pages/reset-password.html?token=${resetToken}`
+
+//     // Always log to console for debugging (visible in Render logs)
+//     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+//     console.log('🔗 PASSWORD RESET LINK (for debugging):')
+//     console.log(resetUrl)
+//     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+//     // Try sending the email — AWAIT it so we catch real failures
+//     await sendPasswordResetEmail({
+//       name: user.name,
+//       email: user.email,
+//       resetUrl
+//     })
+
+//     // Only reaches here if email sent successfully
+//     return res.status(200).json({
+//       success: true,
+//       message: `Reset link sent to ${user.email}. Please check your inbox and spam folder.`
+//     })
+
+//   } catch (err) {
+//     // Email failed — clean up the reset token so user can try again
+//     if (savedUser) {
+//       try {
+//         savedUser.resetPasswordToken = undefined
+//         savedUser.resetPasswordExpire = undefined
+//         await savedUser.save({ validateBeforeSave: false })
+//       } catch (cleanupErr) {
+//         console.error('Token cleanup failed:', cleanupErr.message)
+//       }
+//     }
+
+//     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+//     console.error('❌ FORGOT PASSWORD ERROR:', err.message)
+//     console.error('   Code:', err.code)
+//     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+//     // Give a clear error message based on what went wrong
+//     let message = 'Failed to send email. '
+//     if (err.code === 'EAUTH') {
+//       message += 'Gmail authentication failed. Check SMTP_PASSWORD in your environment variables.'
+//     } else if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+//       message += 'Could not connect to email server. Check SMTP settings.'
+//     } else if (!process.env.SMTP_EMAIL || process.env.SMTP_EMAIL.includes('your_gmail')) {
+//       message += 'Email not configured. Set SMTP_EMAIL and SMTP_PASSWORD in environment variables.'
+//     } else {
+//       message += err.message
+//     }
+
+//     return res.status(500).json({
+//       success: false,
+//       message,
+//       // Only show technical details in development
+//       ...(process.env.NODE_ENV === 'development' && { debug: err.message, code: err.code })
+//     })
+//   }
+// }
+export const forgotPassword = async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email })
+    const { email } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
 
     if (!user) {
-      // Security: return same message so attackers can't enumerate emails
-      return res.status(200).json({
-        success: true,
-        message: 'If an account exists with this email, a reset link has been sent.'
-      })
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
     }
 
-    // Generate reset token and save hashed version to DB
-    const resetToken = user.getResetPasswordToken()
-    await user.save({ validateBeforeSave: false })
-    savedUser = user  // keep ref for cleanup if email fails
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    // Build the reset URL
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://skillbridge-india26.netlify.app').replace(/\/$/, '')
-    const resetUrl = `${frontendUrl}/pages/reset-password.html?token=${resetToken}`
+    // Save token in DB
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
 
-    // Always log to console for debugging (visible in Render logs)
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.log('🔗 PASSWORD RESET LINK (for debugging):')
-    console.log(resetUrl)
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    await user.save();
 
-    // Try sending the email — AWAIT it so we catch real failures
-    await sendPasswordResetEmail({
-      name: user.name,
-      email: user.email,
-      resetUrl
-    })
+    // FRONTEND RESET LINK
+    const resetUrl =
+      `https://skillbridge-india26.netlify.app/reset-password.html?token=${resetToken}`;
 
-    // Only reaches here if email sent successfully
-    return res.status(200).json({
+    // Email options
+    const mailOptions = {
+      from: process.env.SMTP_EMAIL,
+      to: user.email,
+      subject: "Password Reset",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Click below to reset password:</p>
+        <a href="${resetUrl}">${resetUrl}</a>
+      `
+    };
+
+    // TRY sending email
+    // try {
+    //   await transporter.sendMail(mailOptions);
+
+    //   console.log("✅ Email sent successfully");
+    // } catch (emailError) {
+    //   console.log("❌ Email failed:", emailError.message);
+    // }
+
+    // // ALWAYS return success
+    // return res.status(200).json({
+    //   success: true,
+    //   message: "Reset link generated successfully",
+    //   resetLink: resetUrl
+    // });
+    try {
+      await transporter.sendMail(mailOptions)
+      console.log("✅ Email sent")
+    } catch (err) {
+      console.log("❌ Email failed:", err.message)
+    }
+
+    // ALWAYS return success
+    return res.json({
       success: true,
-      message: `Reset link sent to ${user.email}. Please check your inbox and spam folder.`
+      message: "Reset link generated successfully",
+      resetLink: resetUrl
     })
 
-  } catch (err) {
-    // Email failed — clean up the reset token so user can try again
-    if (savedUser) {
-      try {
-        savedUser.resetPasswordToken = undefined
-        savedUser.resetPasswordExpire = undefined
-        await savedUser.save({ validateBeforeSave: false })
-      } catch (cleanupErr) {
-        console.error('Token cleanup failed:', cleanupErr.message)
-      }
-    }
-
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.error('❌ FORGOT PASSWORD ERROR:', err.message)
-    console.error('   Code:', err.code)
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-
-    // Give a clear error message based on what went wrong
-    let message = 'Failed to send email. '
-    if (err.code === 'EAUTH') {
-      message += 'Gmail authentication failed. Check SMTP_PASSWORD in your environment variables.'
-    } else if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
-      message += 'Could not connect to email server. Check SMTP settings.'
-    } else if (!process.env.SMTP_EMAIL || process.env.SMTP_EMAIL.includes('your_gmail')) {
-      message += 'Email not configured. Set SMTP_EMAIL and SMTP_PASSWORD in environment variables.'
-    } else {
-      message += err.message
-    }
+  } catch (error) {
+    console.log(error);
 
     return res.status(500).json({
       success: false,
-      message,
-      // Only show technical details in development
-      ...(process.env.NODE_ENV === 'development' && { debug: err.message, code: err.code })
-    })
+      message: "Server Error"
+    });
   }
-}
+};
 
 // ─── @desc    Reset password
 // ─── @route   PUT /api/auth/password/reset/:token
