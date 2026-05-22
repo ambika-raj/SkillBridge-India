@@ -101,9 +101,6 @@ The platform supports multiple user roles including Students, Instructors, Emplo
 - Multer
 - Cloudinary
 
-## Email Services
-- Nodemailer
-
 ## Deployment
 - Render (Backend)
 - Netlify (Frontend)
@@ -124,9 +121,7 @@ skillbridge-india/
 │   └── server.js
 │
 ├── frontend/
-│   ├── assets/
-│   ├── css/
-│   ├── js/
+│   ├── index.html
 │   └── pages/
 │
 └── README.md
